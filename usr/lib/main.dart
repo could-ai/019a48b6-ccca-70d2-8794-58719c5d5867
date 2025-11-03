@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:couldai_user_app/screens/results_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,7 +16,10 @@ class MyApp extends StatelessWidget {
       title: 'Chair Occupancy Detector',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
       home: const OccupancyHomePage(),
@@ -29,21 +35,37 @@ class OccupancyHomePage extends StatefulWidget {
 }
 
 class _OccupancyHomePageState extends State<OccupancyHomePage> {
+  bool _isProcessing = false;
   bool _analysisComplete = false;
+  File? _selectedVideoFile;
+  String? _selectedFileName;
 
-  void _startAnalysis() {
-    // In a real app, this would trigger file selection and video processing.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting analysis... This will take a few moments.'),
-        duration: Duration(seconds: 3),
-      ),
+  Future<void> _pickAndProcessVideo() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
     );
 
-    // Simulate processing time.
-    Future.delayed(const Duration(seconds: 4), () {
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedVideoFile = File(result.files.single.path!);
+        _selectedFileName = result.files.single.name;
+        _isProcessing = true;
+        _analysisComplete = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Starting analysis on $_selectedFileName... This will take a few moments.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Simulate processing time.
+      await Future.delayed(const Duration(seconds: 5));
+
       if (mounted) {
         setState(() {
+          _isProcessing = false;
           _analysisComplete = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,22 +75,24 @@ class _OccupancyHomePageState extends State<OccupancyHomePage> {
           ),
         );
       }
-    });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No video selected.'),
+        ),
+      );
+    }
   }
 
   void _viewResults() {
-    // In a real app, this would navigate to a results screen.
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Analysis Results'),
-        content: const Text('This is where the 6-panel comprehensive visualization with the Eagle Eye overlay would be displayed.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+    if (_selectedVideoFile == null) return;
+    // In a real app, you would pass the path to the processed video.
+    // Here, we pass a placeholder asset path.
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ResultsScreen(
+          videoAssetPath: 'assets/videos/result.mp4',
+        ),
       ),
     );
   }
@@ -92,48 +116,53 @@ class _OccupancyHomePageState extends State<OccupancyHomePage> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'This application provides a comprehensive visualization for chair occupancy detection, including:',
+                'This application provides a comprehensive 6-panel visualization for chair occupancy detection, including the Eagle Eye Tactical Overlay.',
                 textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
               ),
-              const SizedBox(height: 10),
-              const ListTile(
-                leading: Icon(Icons.videocam),
-                title: Text('Live Webcam Feed Processing'),
-              ),
-              const ListTile(
-                leading: Icon(Icons.movie),
-                title: Text('Video File Analysis'),
-              ),
-              const ListTile(
-                leading: Icon(Icons.grid_on),
-                title: Text('6-Panel Comprehensive View'),
-              ),
-               const ListTile(
-                leading: Icon(Icons.visibility),
-                title: Text('Eagle Eye Tactical Overlay for accuracy'),
-              ),
+              const SizedBox(height: 30),
+              if (_selectedFileName != null)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.movie, color: Colors.blueAccent),
+                    title: const Text('Selected Video'),
+                    subtitle: Text(_selectedFileName!),
+                  ),
+                ),
               const SizedBox(height: 40),
-              ElevatedButton.icon(
-                onPressed: _startAnalysis,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Select Video & Start Analysis'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 18),
+              if (_isProcessing)
+                const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 20),
+                    Text('Processing video, please wait...'),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickAndProcessVideo,
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('Select Video & Start Analysis'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _analysisComplete ? _viewResults : null,
+                      icon: const Icon(Icons.remove_red_eye),
+                      label: const Text('View Analysis Results'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        textStyle: const TextStyle(fontSize: 18),
+                        disabledBackgroundColor: Colors.grey.shade800,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _analysisComplete ? _viewResults : null,
-                icon: const Icon(Icons.remove_red_eye),
-                label: const Text('View Analysis Results'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 18),
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.grey.shade500,
-                ),
-              ),
             ],
           ),
         ),
