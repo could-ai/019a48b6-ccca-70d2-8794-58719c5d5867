@@ -21,8 +21,57 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class OccupancyHomePage extends StatelessWidget {
+class OccupancyHomePage extends StatefulWidget {
   const OccupancyHomePage({super.key});
+
+  @override
+  State<OccupancyHomePage> createState() => _OccupancyHomePageState();
+}
+
+class _OccupancyHomePageState extends State<OccupancyHomePage> {
+  bool _analysisComplete = false;
+
+  void _startAnalysis() {
+    // In a real app, this would trigger file selection and video processing.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Starting analysis... This will take a few moments.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
+
+    // Simulate processing time.
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _analysisComplete = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Analysis complete! You can now view the results.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
+  }
+
+  void _viewResults() {
+    // In a real app, this would navigate to a results screen.
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Analysis Results'),
+        content: const Text('This is where the 6-panel comprehensive visualization with the Eagle Eye overlay would be displayed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,21 +112,26 @@ class OccupancyHomePage extends StatelessWidget {
                 leading: Icon(Icons.visibility),
                 title: Text('Eagle Eye Tactical Overlay for accuracy'),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               ElevatedButton.icon(
-                onPressed: () {
-                  // In a real app, this would trigger the video processing
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Processing would start in a real application.'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start Analysis'),
+                onPressed: _startAnalysis,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Select Video & Start Analysis'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   textStyle: const TextStyle(fontSize: 18),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _analysisComplete ? _viewResults : null,
+                icon: const Icon(Icons.remove_red_eye),
+                label: const Text('View Analysis Results'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  textStyle: const TextStyle(fontSize: 18),
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.grey.shade500,
                 ),
               ),
             ],
